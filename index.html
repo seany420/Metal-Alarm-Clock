@@ -215,6 +215,9 @@ body.night #night-exit { display: inline-flex; position: fixed; right: 16px; bot
 body.night .wrap { min-height: 100%; justify-content: center; padding-top: 40px; }
 body.night .stage { width: min(100%, 62vh, 560px); }
 .lock-note { color: var(--ash); font-size: .9rem; text-align: center; }
+/* Low power: freeze the blood and dim everything except the alarm screen. Black pixels on OLED iPhones draw almost no power. */
+body.lowpower .drip, body.lowpower .drip i, body.lowpower .rim-drip { animation-play-state: paused; }
+body.lowpower::after { content: ""; position: fixed; inset: 0; z-index: 35; pointer-events: none; background: rgba(0, 0, 0, .5); }
 
 /* ---------- ringing ---------- */
 #ring {
@@ -573,8 +576,17 @@ body.night .stage { width: min(100%, 62vh, 560px); }
     hMin.setAttribute('transform', `rotate(${m * 6})`);
     hSec.setAttribute('transform', `rotate(${s * 6})`);
   }
-  if (reduceMotion) setInterval(drawHands, 1000);
-  else (function loop() { drawHands(); requestAnimationFrame(loop); })();
+  // Smooth sweep while you're using the page; nightstand mode drops to one tick a second to save battery.
+  let lowPower = false, rafId = 0;
+  function loop() { drawHands(); rafId = requestAnimationFrame(loop); }
+  function setLowPower(on) {
+    lowPower = on;
+    cancelAnimationFrame(rafId);
+    document.body.classList.toggle('lowpower', on);
+    if (!on && !reduceMotion) loop();
+    drawHands();
+  }
+  if (!reduceMotion) loop();
   drawHands();
 
   function nextAlarm(from) {
@@ -903,7 +915,7 @@ body.night .stage { width: min(100%, 62vh, 560px); }
     }
     lastCheck = now;
   }
-  setInterval(() => { checkAlarm(); updateReadout(); }, 1000);
+  setInterval(() => { checkAlarm(); updateReadout(); if (lowPower || reduceMotion) drawHands(); }, 1000);
 
   /* ---------- nightstand / wake lock ---------- */
   let lock = null, night = false;
@@ -923,14 +935,14 @@ body.night .stage { width: min(100%, 62vh, 560px); }
     n.textContent = lock ? 'Screen will stay awake. Keep the phone plugged in.' : 'This browser may let the screen sleep. Plug in and raise your screen timeout.';
   }
   $('#night-btn').addEventListener('click', () => {
-    night = true; document.body.classList.add('night');
+    night = true; document.body.classList.add('night'); setLowPower(true);
     if (!state.armed) { state.armed = true; save(); renderArm(); }
     requestWakeLock();
     try { const r = document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); if (r && r.catch) r.catch(() => {}); } catch {}
     updateReadout(); $('#scroller').scrollTop = 0;
   });
   $('#night-exit').addEventListener('click', () => {
-    night = false; document.body.classList.remove('night');
+    night = false; document.body.classList.remove('night'); setLowPower(false);
     if (lock) { lock.release().catch(() => {}); lock = null; }
     try { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); } catch {}
     updateLockNote();
