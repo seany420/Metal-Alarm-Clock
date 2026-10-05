@@ -1,0 +1,13 @@
+{
+  "name": "Metal Alarm Clock",
+  "short_name": "Metal Alarm",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#070405",
+  "theme_color": "#070405",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

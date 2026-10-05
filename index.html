@@ -1,0 +1,935 @@
+<!doctype html><!--shell-->
+<html lang="en"><!--shell-->
+<head><!--shell-->
+<meta charset="utf-8"><!--shell-->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><!--shell-->
+<meta name="theme-color" content="#070405"><!--shell-->
+<meta name="apple-mobile-web-app-capable" content="yes"><!--shell-->
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><!--shell-->
+<link rel="manifest" href="manifest.webmanifest"><!--shell-->
+<link rel="icon" href="icon.svg" type="image/svg+xml"><!--shell-->
+<link rel="apple-touch-icon" href="icon.svg"><!--shell-->
+<title>Metal Alarm Clock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;800&family=Metal+Mania&family=UnifrakturMaguntia&display=swap">
+<style>
+/* Layout: one dark crypt column. Sword-handed clock flanked by a hockey mask and a bloody knife, blood oozing off the top of the screen, controls stacked below. */
+:root {
+  --void: #070405;
+  --crypt: #130b0c;
+  --crypt-2: #1c1012;
+  --line: #3a2224;
+  --bone: #e3d6bd;
+  --ash: #9a8a80;
+  --blood: #9e0b12;
+  --blood-hi: #d8141e;
+  --blood-dark: #4a0307;
+  --steel: #c3c6cc;
+  --brass: #7a5d2a;
+  --display: "Metal Mania", "Pirata One", Impact, fantasy;
+  --gothic: "UnifrakturMaguntia", "Old English Text MT", Georgia, serif;
+  --body: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  color-scheme: dark;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { min-height: 100%; }
+body {
+  margin: 0;
+  background: var(--void);
+  color: var(--bone);
+  font-family: var(--body);
+  font-size: 18px;
+  line-height: 1.4;
+  overflow-x: clip;
+  -webkit-tap-highlight-color: transparent;
+}
+button, input, label.btn { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--blood-hi); outline-offset: 3px; }
+
+/* ---------- atmosphere ---------- */
+#wall {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background: radial-gradient(ellipse at 50% 30%, var(--crypt-2) 0%, var(--void) 70%);
+}
+#wall img {
+  width: 100%; height: 100%; object-fit: cover;
+  opacity: .32; filter: grayscale(1) contrast(1.25) brightness(.8);
+  mix-blend-mode: luminosity;
+}
+#wall::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(to bottom, transparent 40%, var(--void) 100%),
+              radial-gradient(ellipse at center, transparent 40%, rgba(70, 0, 5, .45) 100%);
+}
+#gore {
+  position: fixed; inset: 0; z-index: 30; pointer-events: none; overflow: hidden;
+}
+#gore .band {
+  position: absolute; top: 0; left: 0; width: 100%; height: 34px;
+  top: env(safe-area-inset-top, 0px);
+}
+.drip {
+  position: absolute; top: calc(env(safe-area-inset-top, 0px) + 14px);
+  width: var(--w); height: 4px;
+  background: linear-gradient(to bottom, var(--blood-dark), var(--blood));
+  border-radius: 0 0 999px 999px;
+  animation: ooze var(--d) cubic-bezier(.6, 0, .9, .6) var(--delay) infinite;
+}
+.drip i {
+  position: absolute; left: 50%; bottom: -5px; width: calc(var(--w) * 1.5); aspect-ratio: 3 / 4;
+  translate: -50% 0; background: var(--blood);
+  border-radius: 50% 50% 50% 50% / 60% 60% 42% 42%;
+  animation: fall var(--d) ease-in var(--delay) infinite;
+}
+@keyframes ooze { 0% { height: 4px } 72% { height: var(--h) } 100% { height: var(--h) } }
+@keyframes fall {
+  0%, 72% { transform: translateY(0); opacity: 1 }
+  99% { transform: translateY(110vh); opacity: .9 }
+  100% { transform: translateY(110vh); opacity: 0 }
+}
+
+/* ---------- page ---------- */
+.wrap {
+  position: relative; z-index: 10;
+  max-width: 640px; margin: 0 auto;
+  padding-inline: 16px;
+  padding-block: 44px 64px;
+  display: flex; flex-direction: column; gap: 22px;
+}
+header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.wordmark {
+  margin: 0; font-family: var(--display); font-weight: 400;
+  font-size: clamp(2rem, 9vw, 3rem); line-height: 1; letter-spacing: .02em;
+  color: var(--bone); text-shadow: 0 2px 0 var(--blood-dark), 0 0 18px rgba(216, 20, 30, .35);
+}
+.wordmark span { color: var(--blood-hi); }
+.tagline { margin: 0; color: var(--ash); font-size: .95rem; letter-spacing: .14em; text-transform: uppercase; }
+
+.stage { position: relative; width: min(100%, 520px); margin: 0 auto; overflow-x: clip; overflow-y: visible; }
+#clock { display: block; width: 84%; margin: 0 auto; overflow: visible; }
+.prop { position: absolute; pointer-events: none; filter: drop-shadow(0 8px 14px rgba(0, 0, 0, .8)); }
+.prop.mask { width: 23%; left: 2%; bottom: 4%; rotate: -14deg; }
+.prop.knife { width: 11%; right: 5%; bottom: 2%; rotate: 22deg; }
+
+.readout { display: grid; justify-items: center; gap: 2px; text-align: center; }
+.digital {
+  font-weight: 800; font-size: clamp(3.6rem, 18vw, 6.2rem); line-height: .95;
+  font-variant-numeric: tabular-nums; letter-spacing: .01em;
+  text-shadow: 0 0 22px rgba(216, 20, 30, .35), 0 3px 0 var(--blood-dark);
+}
+.digital small { font-size: .38em; color: var(--blood-hi); margin-left: .12em; }
+.date { font-family: var(--gothic); font-size: 1.35rem; color: var(--ash); }
+.status {
+  margin-top: 10px; display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center;
+  font-size: 1.05rem; letter-spacing: .04em;
+}
+.pill {
+  display: inline-block; padding: 2px 10px; border-radius: 4px;
+  font-weight: 800; font-size: .8rem; letter-spacing: .16em; text-transform: uppercase;
+  border: 1px solid var(--line); color: var(--ash);
+}
+.pill.on { background: var(--blood); border-color: var(--blood-hi); color: var(--bone); }
+.pill.snooze { border-color: var(--brass); color: var(--bone); }
+
+.actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 46px; padding: 0 18px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--crypt-2);
+  font-weight: 600; letter-spacing: .1em; text-transform: uppercase; font-size: .95rem;
+}
+.btn:hover { border-color: var(--blood-hi); }
+.btn.primary { background: var(--blood); border-color: var(--blood-hi); }
+.btn.small { min-height: 36px; padding: 0 12px; font-size: .8rem; }
+
+.panel {
+  background: color-mix(in srgb, var(--crypt) 92%, transparent);
+  border: 1px solid var(--line); border-radius: 8px;
+  padding: 18px 16px; display: grid; gap: 14px;
+}
+.panel h2 {
+  margin: 0; font-family: var(--display); font-weight: 400; font-size: 1.7rem; line-height: 1.1;
+  color: var(--bone); text-wrap: balance;
+}
+.panel h2 span { color: var(--blood-hi); }
+.panel p { margin: 0; color: var(--ash); max-width: 62ch; }
+.panel .hint { font-size: .95rem; }
+
+.alarm-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+#alarm-time {
+  background: var(--void); border: 1px solid var(--line); border-radius: 6px;
+  font-weight: 800; font-size: 2.4rem; padding: 2px 12px; min-height: 64px;
+  font-variant-numeric: tabular-nums; color: var(--bone);
+}
+.arm {
+  min-height: 64px; padding: 0 22px; border-radius: 6px; cursor: pointer;
+  border: 2px solid var(--line); background: var(--void);
+  font-family: var(--display); font-size: 1.6rem; letter-spacing: .04em;
+}
+.arm[aria-pressed="true"] { background: var(--blood); border-color: var(--blood-hi); box-shadow: 0 0 24px rgba(216, 20, 30, .4); }
+.days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.days button {
+  min-height: 44px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--void); color: var(--ash);
+  font-weight: 800; letter-spacing: .08em;
+}
+.days button[aria-pressed="true"] { color: var(--bone); border-color: var(--blood-hi); background: var(--blood-dark); }
+
+#setlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.track {
+  display: grid; grid-template-columns: 2ch minmax(0, 1fr) auto; align-items: center; gap: 4px 12px;
+  padding: 10px 10px; border-radius: 6px; border: 1px solid transparent; background: var(--void);
+}
+.track.is-next { border-color: var(--blood); }
+.track .num { color: var(--ash); font-variant-numeric: tabular-nums; text-align: right; font-weight: 600; }
+.track .meta { min-width: 0; display: grid; }
+.track .meta b { font-weight: 800; font-size: 1.12rem; overflow-wrap: anywhere; }
+.track .meta span { color: var(--ash); font-size: .92rem; overflow-wrap: anywhere; }
+.track .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.track .ops { grid-column: 2 / 4; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+.track .ops .left, .track .ops .right { display: flex; gap: 6px; align-items: center; }
+.chip { font-size: .72rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; padding: 1px 8px; border-radius: 3px; border: 1px solid var(--line); color: var(--ash); }
+.chip.ok { color: var(--bone); border-color: var(--brass); }
+.chip.next { color: var(--bone); background: var(--blood); border-color: var(--blood-hi); }
+.icon-btn {
+  min-width: 36px; min-height: 36px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--crypt-2); font-size: .8rem; letter-spacing: .08em; padding: 0 10px;
+  text-transform: uppercase; font-weight: 600;
+}
+.icon-btn:hover { border-color: var(--blood-hi); }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.notes { margin: 0; padding-left: 1.1em; color: var(--ash); display: grid; gap: 6px; max-width: 62ch; }
+.notes b { color: var(--bone); font-weight: 600; }
+.toast { min-height: 1.4em; color: var(--blood-hi); font-weight: 600; }
+
+/* ---------- nightstand ---------- */
+#night-exit { display: none; }
+body.night .panel, body.night header, body.night .actions { display: none; }
+body.night #night-exit { display: inline-flex; position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 40; opacity: .55; }
+body.night .wrap { min-height: 100vh; min-height: 100dvh; justify-content: center; padding-top: 40px; }
+body.night .stage { width: min(100%, 62vh, 560px); }
+.lock-note { color: var(--ash); font-size: .9rem; text-align: center; }
+
+/* ---------- ringing ---------- */
+#ring {
+  position: fixed; inset: 0; z-index: 100;
+  display: grid; place-items: center; text-align: center;
+  padding: calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  background: var(--void); animation: strobe 1.3s steps(2, jump-none) infinite;
+}
+@keyframes strobe { 0% { background: var(--void) } 100% { background: var(--blood-dark) } }
+.ring-inner { display: grid; gap: 18px; justify-items: center; width: min(100%, 460px); }
+.ring-title { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(3.4rem, 17vw, 6rem); line-height: .9; color: var(--bone); text-shadow: 0 0 30px var(--blood-hi); }
+.ring-time { font-weight: 800; font-size: 2.4rem; font-variant-numeric: tabular-nums; }
+.ring-song { font-size: 1.25rem; }
+.ring-song b { display: block; font-family: var(--gothic); font-weight: 400; font-size: 1.9rem; line-height: 1.15; color: var(--bone); }
+.ring-song span { color: var(--ash); letter-spacing: .1em; text-transform: uppercase; font-size: .95rem; }
+.ring-buttons { display: grid; gap: 12px; width: 100%; }
+#snooze { min-height: 84px; font-size: 1.5rem; }
+#kill {
+  --p: 0; min-height: 70px; font-size: 1.15rem; touch-action: none; user-select: none; -webkit-user-select: none;
+  background: linear-gradient(to right, var(--blood-hi) calc(var(--p) * 100%), var(--crypt-2) 0);
+  border-color: var(--blood-hi);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drip, .drip i { animation: none; }
+  .drip { height: var(--h); }
+  .drip i { display: none; }
+  #ring { animation: none; background: var(--blood-dark); }
+  .rim-drip { animation: none !important; }
+}
+.rim-drip { transform-box: fill-box; transform-origin: 50% 0; animation: rimooze 7s ease-in-out infinite alternate; }
+@keyframes rimooze { from { transform: scaleY(.35) } to { transform: scaleY(1) } }
+</style>
+</head><!--shell-->
+<body><!--shell-->
+
+<div id="wall" aria-hidden="true"><img id="wall-img" alt="" hidden></div>
+<div id="gore" aria-hidden="true">
+  <svg class="band" viewBox="0 0 100 10" preserveAspectRatio="none"><path id="band-path" fill="#9e0b12"/></svg>
+</div>
+
+<main class="wrap">
+  <header>
+    <h1 class="wordmark">Metal <span>Alarm</span></h1>
+    <p class="tagline">Wake up screaming</p>
+  </header>
+
+  <section class="stage" aria-label="Clock">
+    <svg id="clock" viewBox="-215 -215 430 490" role="img" aria-label="Analog clock with sword hands">
+      <defs>
+        <radialGradient id="faceGrad" cx="50%" cy="42%" r="60%">
+          <stop offset="0" stop-color="#2a1416"/>
+          <stop offset=".7" stop-color="#0d0607"/>
+          <stop offset="1" stop-color="#030102"/>
+        </radialGradient>
+        <linearGradient id="iron" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#6d6a6a"/>
+          <stop offset=".5" stop-color="#2a2727"/>
+          <stop offset="1" stop-color="#4c4848"/>
+        </linearGradient>
+        <linearGradient id="steel" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#7d828a"/>
+          <stop offset=".48" stop-color="#eef0f3"/>
+          <stop offset=".52" stop-color="#9da2aa"/>
+          <stop offset="1" stop-color="#5a5f66"/>
+        </linearGradient>
+        <linearGradient id="bloodGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#4a0307"/>
+          <stop offset="1" stop-color="#c0101a"/>
+        </linearGradient>
+      </defs>
+      <g id="rim-drips"></g>
+      <g id="spikes"></g>
+      <circle r="184" fill="url(#iron)" stroke="#000" stroke-width="2"/>
+      <circle r="174" fill="url(#faceGrad)" stroke="#0a0505" stroke-width="3"/>
+      <circle r="110" fill="none" stroke="#3a2224" stroke-width="1" stroke-dasharray="2 6"/>
+      <g id="ticks"></g>
+      <g id="numerals"></g>
+      <path d="M-30 150 Q-10 140 4 152 Q20 162 34 148" fill="none" stroke="#5a0a0e" stroke-width="3" opacity=".6"/>
+
+      <!-- hour hand: broadsword -->
+      <g id="hand-hour">
+        <path d="M-8 -16 L-8 -86 L0 -106 L8 -86 L8 -16 Z" fill="url(#steel)" stroke="#1c1d20" stroke-width="1.2"/>
+        <path d="M0 -20 L0 -90" stroke="#4d5158" stroke-width="2"/>
+        <path d="M-6 -60 Q0 -52 6 -64 L6 -40 Q0 -34 -6 -44 Z" fill="#9e0b12" opacity=".85"/>
+        <rect x="-26" y="-20" width="52" height="7" rx="3" fill="#7a5d2a" stroke="#2a1d0b"/>
+        <circle cx="-27" cy="-16.5" r="4.5" fill="#7a5d2a" stroke="#2a1d0b"/>
+        <circle cx="27" cy="-16.5" r="4.5" fill="#7a5d2a" stroke="#2a1d0b"/>
+        <rect x="-4.5" y="-13" width="9" height="30" rx="2" fill="#2b1a12"/>
+        <path d="M-4.5 -8 L4.5 -4 M-4.5 0 L4.5 4 M-4.5 8 L4.5 12" stroke="#5a3a22" stroke-width="1.5"/>
+        <circle cy="22" r="7" fill="#7a5d2a" stroke="#2a1d0b"/>
+      </g>
+
+      <!-- minute hand: serrated dagger -->
+      <g id="hand-min">
+        <path id="dagger" fill="url(#steel)" stroke="#1c1d20" stroke-width="1.2"/>
+        <path d="M1.5 -14 L1.5 -128" stroke="#4d5158" stroke-width="1.5"/>
+        <path d="M-5 -150 L0 -156 L5 -150 L5 -128 Q0 -118 -5 -132 Z" fill="#b30d16"/>
+        <path d="M-20 -2 Q-12 -14 0 -10 Q12 -14 20 -2" fill="none" stroke="#1a1a1c" stroke-width="5" stroke-linecap="round"/>
+        <rect x="-3.5" y="-8" width="7" height="30" rx="2" fill="#141012"/>
+        <circle cy="26" r="5" fill="#cfc6b4"/>
+        <circle cx="-1.8" cy="25" r="1.3" fill="#141012"/>
+        <circle cx="1.8" cy="25" r="1.3" fill="#141012"/>
+      </g>
+
+      <!-- second hand: blood needle -->
+      <g id="hand-sec">
+        <path d="M-1.3 34 L-1.3 -150 L0 -164 L1.3 -150 L1.3 34 Z" fill="#d8141e"/>
+        <path d="M0 26 C-7 36 -7 44 0 46 C7 44 7 36 0 26 Z" fill="#9e0b12"/>
+      </g>
+
+      <circle r="11" fill="#140b0c" stroke="#d8141e" stroke-width="2.5"/>
+      <circle r="3.5" fill="#c3c6cc"/>
+    </svg>
+
+    <!-- generic hockey mask -->
+    <svg class="prop mask" viewBox="0 0 120 164" aria-hidden="true">
+      <path d="M8 66 L-6 60 M112 66 L126 60 M14 110 L0 118 M106 110 L120 118" stroke="#1a1414" stroke-width="5"/>
+      <path d="M60 6 C96 6 113 40 111 82 C109 126 86 156 60 156 C34 156 11 126 9 82 C7 40 24 6 60 6 Z" fill="#e6dfcc" stroke="#7d7462" stroke-width="2.5"/>
+      <path d="M60 6 C96 6 113 40 111 82 C109 126 86 156 60 156" fill="none" stroke="#b9b09a" stroke-width="5" opacity=".5"/>
+      <ellipse cx="39" cy="68" rx="14" ry="9" fill="#0b0606" transform="rotate(10 39 68)"/>
+      <ellipse cx="81" cy="68" rx="14" ry="9" fill="#0b0606" transform="rotate(-10 81 68)"/>
+      <path d="M48 22 L60 34 L72 22" fill="none" stroke="#b0121b" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M22 86 L33 95 L25 106" fill="none" stroke="#b0121b" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M98 86 L87 95 L95 106" fill="none" stroke="#b0121b" stroke-width="5" stroke-linejoin="round"/>
+      <g fill="#140c0c">
+        <circle cx="46" cy="44" r="2.6"/><circle cx="60" cy="48" r="2.6"/><circle cx="74" cy="44" r="2.6"/>
+        <circle cx="54" cy="92" r="2.6"/><circle cx="66" cy="92" r="2.6"/>
+        <circle cx="48" cy="104" r="2.6"/><circle cx="60" cy="104" r="2.6"/><circle cx="72" cy="104" r="2.6"/>
+        <circle cx="42" cy="118" r="2.6"/><circle cx="54" cy="118" r="2.6"/><circle cx="66" cy="118" r="2.6"/><circle cx="78" cy="118" r="2.6"/>
+        <circle cx="48" cy="132" r="2.6"/><circle cx="60" cy="132" r="2.6"/><circle cx="72" cy="132" r="2.6"/>
+        <circle cx="60" cy="145" r="2.6"/>
+      </g>
+      <path d="M86 112 C94 118 92 128 96 140 C97 146 92 147 91 141 C89 132 84 124 80 120 Z" fill="#8f0a10" opacity=".9"/>
+      <path d="M30 40 C26 46 28 54 24 58" stroke="#8f0a10" stroke-width="3" fill="none" opacity=".7"/>
+    </svg>
+
+    <!-- generic kitchen knife -->
+    <svg class="prop knife" viewBox="0 0 60 220" aria-hidden="true">
+      <defs>
+        <linearGradient id="blade" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#f1f2f4"/><stop offset=".6" stop-color="#a6abb3"/><stop offset="1" stop-color="#6c7178"/>
+        </linearGradient>
+      </defs>
+      <rect x="16" y="4" width="26" height="62" rx="8" fill="#1d1513" stroke="#000" stroke-width="1.5"/>
+      <circle cx="29" cy="18" r="2.6" fill="#b9bcc2"/><circle cx="29" cy="35" r="2.6" fill="#b9bcc2"/><circle cx="29" cy="52" r="2.6" fill="#b9bcc2"/>
+      <rect x="14" y="64" width="30" height="8" rx="2" fill="#9ea3aa"/>
+      <path d="M15 72 L44 72 L44 150 Q42 194 18 214 Q22 176 15 150 Z" fill="url(#blade)" stroke="#555a61" stroke-width="1"/>
+      <path d="M44 128 Q42 176 18 214 Q21 190 22 168 C30 160 36 146 44 128 Z" fill="#a30d14" opacity=".92"/>
+      <path d="M24 186 C22 196 20 202 22 206" stroke="#a30d14" stroke-width="3" fill="none"/>
+      <circle cx="19" cy="214" r="3" fill="#a30d14"/>
+    </svg>
+  </section>
+
+  <div class="readout">
+    <div class="digital" id="digital" aria-live="off">--:--</div>
+    <div class="date" id="date"></div>
+    <div class="status"><span class="pill" id="arm-pill">Off</span><span id="status-text">No alarm set</span></div>
+  </div>
+
+  <div class="actions">
+    <button class="btn primary" id="night-btn" type="button">Nightstand mode</button>
+    <button class="btn" id="test-btn" type="button">Test alarm</button>
+  </div>
+  <p class="lock-note" id="lock-note" hidden></p>
+
+  <section class="panel" aria-labelledby="alarm-h">
+    <h2 id="alarm-h">The <span>Summoning</span></h2>
+    <div class="alarm-row">
+      <label class="vh" for="alarm-time">Alarm time</label>
+      <input type="time" id="alarm-time" value="06:30">
+      <button class="arm" id="arm-btn" type="button" aria-pressed="false">Arm it</button>
+    </div>
+    <div class="days" id="days" role="group" aria-label="Days the alarm goes off"></div>
+    <p class="hint">Snooze gives you 9 minutes. Killing it means holding the button for 2 seconds, so you have to be at least half awake.</p>
+  </section>
+
+  <section class="panel" aria-labelledby="set-h">
+    <h2 id="set-h">The <span>Setlist</span></h2>
+    <p class="hint">Each alarm plays the next song down the list, then wraps back to the top. Tap <b>Load</b> on a slot and pick the song file from your phone (MP3, M4A, whatever you own). Slots without a file get skipped. If nothing is loaded you get a built-in riff with a tolling bell.</p>
+    <ol id="setlist"></ol>
+    <div class="actions" style="justify-content:flex-start">
+      <label class="btn small" for="add-files">Add more songs</label>
+      <input type="file" id="add-files" accept="audio/*" multiple class="vh">
+      <button class="btn small" id="reset-list" type="button">Restore default list</button>
+    </div>
+    <div class="toast" id="toast" role="status"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="wall-h">
+    <h2 id="wall-h">The <span>Backdrop</span></h2>
+    <p class="hint">Put any picture behind the clock: your favorite slasher still, an album cover, a shot of your own haunted bedroom. It gets washed into grayscale so the blood stays red.</p>
+    <div class="actions" style="justify-content:flex-start">
+      <label class="btn small" for="wall-file">Choose image</label>
+      <input type="file" id="wall-file" accept="image/*" class="vh">
+      <button class="btn small" id="wall-clear" type="button">Remove image</button>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="keep-h">
+    <h2 id="keep-h">Keep it <span>alive</span></h2>
+    <ul class="notes">
+      <li><b>Leave this page open overnight.</b> Phones freeze background web pages, so the alarm only goes off while this screen is up. Tap Nightstand mode before bed.</li>
+      <li><b>Plug the phone in</b> and turn the volume up. If the screen still dims, raise Auto-Lock (iPhone) or Screen timeout (Android) while it charges.</li>
+      <li><b>Tap anything once</b> after opening the page. Browsers only allow sound after you've touched the page.</li>
+      <li><b>Run Test alarm</b> the first night so you know it's loud enough.</li>
+    </ul>
+  </section>
+
+  <button class="btn" id="night-exit" type="button">Exit nightstand</button>
+</main>
+
+<div id="ring" hidden role="alertdialog" aria-labelledby="ring-title">
+  <div class="ring-inner">
+    <h2 class="ring-title" id="ring-title">Wake up</h2>
+    <div class="ring-time" id="ring-time"></div>
+    <div class="ring-song"><b id="ring-song-title"></b><span id="ring-song-band"></span></div>
+    <div class="ring-buttons">
+      <button class="btn primary" id="snooze" type="button">Snooze 9 min</button>
+      <button class="btn" id="kill" type="button">Hold to kill it</button>
+    </div>
+  </div>
+</div>
+
+<audio id="player" playsinline preload="auto"></audio>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const NS = 'http://www.w3.org/2000/svg';
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- persistence ---------- */
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('metal-alarm:' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+    set(k, v) { try { localStorage.setItem('metal-alarm:' + k, JSON.stringify(v)); } catch {} }
+  };
+  const mem = new Map();
+  let dbp = null;
+  function db() {
+    if (!dbp) dbp = new Promise((res, rej) => {
+      try {
+        const r = indexedDB.open('metal-alarm', 1);
+        r.onupgradeneeded = () => r.result.createObjectStore('files');
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error);
+      } catch (e) { rej(e); }
+    });
+    return dbp;
+  }
+  function tx(mode, fn) {
+    return db().then((d) => new Promise((res, rej) => {
+      const t = d.transaction('files', mode); const req = fn(t.objectStore('files'));
+      t.oncomplete = () => res(req && req.result); t.onerror = () => rej(t.error);
+    }));
+  }
+  const files = {
+    async put(k, v) { mem.set(k, v); try { await tx('readwrite', (s) => s.put(v, k)); } catch {} },
+    async get(k) { if (mem.has(k)) return mem.get(k); try { return await tx('readonly', (s) => s.get(k)); } catch { return undefined; } },
+    async del(k) { mem.delete(k); try { await tx('readwrite', (s) => s.delete(k)); } catch {} },
+    async keys() { try { return (await tx('readonly', (s) => s.getAllKeys())) || []; } catch { return [...mem.keys()]; } }
+  };
+
+  const DEFAULT_SETLIST = [
+    { id: 'd1', title: 'For Whom the Bell Tolls', band: 'Metallica' },
+    { id: 'd2', title: 'Raining Blood', band: 'Slayer' },
+    { id: 'd3', title: 'Domination', band: 'Pantera' },
+    { id: 'd4', title: '(sic)', band: 'Slipknot' },
+    { id: 'd5', title: 'Blackened', band: 'Metallica' },
+    { id: 'd6', title: 'Blind', band: 'Korn' },
+    { id: 'd7', title: 'Epic', band: 'Faith No More' },
+    { id: 'd8', title: 'Master of Puppets', band: 'Metallica' },
+    { id: 'd9', title: 'Iron Man', band: 'Black Sabbath' }
+  ];
+
+  const state = {
+    time: store.get('time', '06:30'),
+    days: store.get('days', [true, true, true, true, true, true, true]),
+    armed: store.get('armed', false),
+    setlist: store.get('setlist', DEFAULT_SETLIST),
+    next: store.get('next', 0),
+    snoozeUntil: store.get('snoozeUntil', null)
+  };
+  const loaded = new Set();
+  function save() { for (const k of ['time', 'days', 'armed', 'setlist', 'next', 'snoozeUntil']) store.set(k, state[k]); }
+
+  /* ---------- clock face ---------- */
+  function svg(tag, attrs, parent) {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  const pt = (r, deg) => { const a = deg * Math.PI / 180; return [r * Math.sin(a), -r * Math.cos(a)]; };
+  (function buildFace() {
+    const spikes = $('#spikes');
+    for (let i = 0; i < 24; i++) {
+      const a = i * 15, tip = i % 6 === 0 ? 210 : 199;
+      const [x1, y1] = pt(182, a - 4.2), [x2, y2] = pt(tip, a), [x3, y3] = pt(182, a + 4.2);
+      svg('path', { d: `M${x1} ${y1} L${x2} ${y2} L${x3} ${y3} Z`, fill: 'url(#iron)', stroke: '#000', 'stroke-width': 1 }, spikes);
+    }
+    const ticks = $('#ticks');
+    for (let i = 0; i < 60; i++) {
+      const major = i % 5 === 0;
+      const [x1, y1] = pt(major ? 154 : 164, i * 6), [x2, y2] = pt(171, i * 6);
+      svg('line', { x1, y1, x2, y2, stroke: major ? '#d8141e' : '#e3d6bd', 'stroke-width': major ? 4 : 1.4, opacity: major ? 1 : .45, 'stroke-linecap': 'round' }, ticks);
+    }
+    const romans = ['XII', 'I', 'II', 'III', 'IIII', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'];
+    const nums = $('#numerals');
+    romans.forEach((n, i) => {
+      const [x, y] = pt(130, i * 30);
+      const t = svg('text', { x, y, 'text-anchor': 'middle', 'dominant-baseline': 'central', fill: i === 0 ? '#d8141e' : '#e3d6bd', 'font-size': i === 0 ? 38 : 27, 'font-family': 'UnifrakturMaguntia, Old English Text MT, Georgia, serif' }, nums);
+      t.textContent = n;
+    });
+    const drips = $('#rim-drips');
+    [[150, 46, 5], [166, 70, 7], [181, 38, 4.5], [196, 84, 6.5], [212, 52, 5]].forEach(([deg, len, w], i) => {
+      const [x, y] = pt(180, deg);
+      const g = svg('g', { class: 'rim-drip', style: `animation-delay:${-i * 1.7}s;animation-duration:${6 + i}s` }, drips);
+      svg('path', { d: `M${x - w} ${y - 8} L${x - w} ${y + len - w} Q${x - w} ${y + len + w * 1.6} ${x} ${y + len + w * 1.6} Q${x + w} ${y + len + w * 1.6} ${x + w} ${y + len - w} L${x + w} ${y - 8} Z`, fill: 'url(#bloodGrad)' }, g);
+    });
+    let d = 'M5 -10 L5 -128 L0 -156 L-5 -128';
+    for (let y = -122; y < -34; y += 8) d += ` L-5 ${y} L-9.5 ${y + 5}`;
+    d += ' L-5 -34 L-5 -10 Z';
+    $('#dagger').setAttribute('d', d);
+  })();
+
+  /* ---------- blood band + drips ---------- */
+  (function buildGore() {
+    let d = 'M0 0 H100 V3';
+    for (let x = 100; x > 0; x -= 4) d += ` Q${x - 2} ${3 + Math.random() * 7} ${x - 4} ${2 + Math.random() * 3}`;
+    d += ' Z';
+    $('#band-path').setAttribute('d', d);
+    const gore = $('#gore');
+    const count = Math.max(6, Math.round(innerWidth / 70));
+    for (let i = 0; i < count; i++) {
+      const s = document.createElement('div');
+      s.className = 'drip';
+      const w = 3 + Math.random() * 5;
+      s.style.cssText = `left:${(i + .2 + Math.random() * .6) / count * 100}%;--w:${w}px;--h:${18 + Math.random() * 70}px;--d:${7 + Math.random() * 9}s;--delay:${-Math.random() * 12}s`;
+      s.appendChild(document.createElement('i'));
+      gore.appendChild(s);
+    }
+  })();
+
+  /* ---------- time display ---------- */
+  const hHour = $('#hand-hour'), hMin = $('#hand-min'), hSec = $('#hand-sec');
+  const fmt12 = (d) => { let h = d.getHours() % 12 || 12; return `${h}:${String(d.getMinutes()).padStart(2, '0')}`; };
+  const ampm = (d) => d.getHours() < 12 ? 'AM' : 'PM';
+  function drawHands() {
+    const n = new Date();
+    const s = n.getSeconds() + (reduceMotion ? 0 : n.getMilliseconds() / 1000);
+    const m = n.getMinutes() + s / 60, h = (n.getHours() % 12) + m / 60;
+    hHour.setAttribute('transform', `rotate(${h * 30})`);
+    hMin.setAttribute('transform', `rotate(${m * 6})`);
+    hSec.setAttribute('transform', `rotate(${s * 6})`);
+  }
+  if (reduceMotion) setInterval(drawHands, 1000);
+  else (function loop() { drawHands(); requestAnimationFrame(loop); })();
+  drawHands();
+
+  function nextAlarm(from) {
+    if (!state.days.some(Boolean)) return null;
+    const [h, m] = state.time.split(':').map(Number);
+    for (let i = 0; i < 8; i++) {
+      const d = new Date(from); d.setDate(d.getDate() + i); d.setHours(h, m, 0, 0);
+      if (d > from && state.days[d.getDay()]) return d;
+    }
+    return null;
+  }
+  function untilText(ms) {
+    const mins = Math.max(0, Math.ceil(ms / 60000)), h = Math.floor(mins / 60), m = mins % 60;
+    return h ? `${h}h ${m}m` : `${m}m`;
+  }
+  const DAY = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  function updateReadout() {
+    const n = new Date();
+    $('#digital').innerHTML = `${fmt12(n)}<small>${ampm(n)}</small>`;
+    $('#date').textContent = `${DAY[n.getDay()]}, ${n.getDate()} ${MON[n.getMonth()]}`;
+    const pill = $('#arm-pill'), txt = $('#status-text');
+    if (state.snoozeUntil) {
+      const s = new Date(state.snoozeUntil);
+      pill.className = 'pill snooze'; pill.textContent = 'Snoozing';
+      txt.textContent = `Back at ${fmt12(s)} ${ampm(s)}`;
+    } else if (state.armed) {
+      const a = nextAlarm(n);
+      pill.className = 'pill on'; pill.textContent = 'Armed';
+      txt.textContent = a ? `${DAY[a.getDay()].slice(0, 3)} ${fmt12(a)} ${ampm(a)} · tolls in ${untilText(a - n)}` : 'Pick at least one day';
+    } else {
+      pill.className = 'pill'; pill.textContent = 'Off';
+      txt.textContent = 'No alarm armed';
+    }
+  }
+
+  /* ---------- alarm settings UI ---------- */
+  const timeInput = $('#alarm-time'), armBtn = $('#arm-btn');
+  timeInput.value = state.time;
+  timeInput.addEventListener('change', () => { if (timeInput.value) { state.time = timeInput.value; save(); updateReadout(); } });
+  function renderArm() {
+    armBtn.setAttribute('aria-pressed', String(state.armed));
+    armBtn.textContent = state.armed ? 'Armed' : 'Arm it';
+  }
+  armBtn.addEventListener('click', () => {
+    state.armed = !state.armed;
+    if (!state.armed) state.snoozeUntil = null;
+    save(); renderArm(); updateReadout();
+  });
+  const daysEl = $('#days');
+  ['S', 'M', 'T', 'W', 'T', 'F', 'S'].forEach((l, i) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.textContent = l; b.setAttribute('aria-label', DAY[i]);
+    b.setAttribute('aria-pressed', String(!!state.days[i]));
+    b.addEventListener('click', () => { state.days[i] = !state.days[i]; b.setAttribute('aria-pressed', String(state.days[i])); save(); updateReadout(); });
+    daysEl.appendChild(b);
+  });
+  renderArm();
+
+  /* ---------- setlist ---------- */
+  const toast = (msg) => { const t = $('#toast'); t.textContent = msg; clearTimeout(toast.t); toast.t = setTimeout(() => t.textContent = '', 4000); };
+  function upcomingIdx() {
+    const L = state.setlist;
+    for (let i = 0; i < L.length; i++) { const idx = (state.next + i) % L.length; if (loaded.has(L[idx].id)) return idx; }
+    return -1;
+  }
+  function renderSetlist() {
+    const ol = $('#setlist'); ol.innerHTML = '';
+    const nx = upcomingIdx();
+    state.setlist.forEach((s, idx) => {
+      const li = document.createElement('li');
+      li.className = 'track' + (idx === nx ? ' is-next' : '');
+      const has = loaded.has(s.id);
+      li.innerHTML = `<span class="num">${idx + 1}</span><div class="meta"><b></b><span></span></div><div class="chips"></div>
+        <div class="ops"><div class="left"><label class="icon-btn btn small">${has ? 'Replace' : 'Load'}<input type="file" accept="audio/*" class="vh"></label>
+        ${has ? '<button type="button" class="icon-btn" data-act="next">Play next</button>' : ''}</div>
+        <div class="right"><button type="button" class="icon-btn" data-act="del" aria-label="Remove ${s.title.replace(/"/g, '')}">Remove</button></div></div>`;
+      li.querySelector('.meta b').textContent = s.title;
+      li.querySelector('.meta span').textContent = s.band;
+      const chips = li.querySelector('.chips');
+      const c = document.createElement('span');
+      c.className = 'chip' + (idx === nx ? ' next' : has ? ' ok' : '');
+      c.textContent = idx === nx ? 'Next up' : has ? 'Loaded' : 'No file';
+      chips.appendChild(c);
+      li.querySelector('input').addEventListener('change', async (e) => {
+        const f = e.target.files[0]; if (!f) return;
+        await files.put(s.id, { blob: f, name: f.name });
+        loaded.add(s.id); renderSetlist(); toast(`Loaded ${s.title}`);
+      });
+      li.querySelector('[data-act="del"]').addEventListener('click', async () => {
+        state.setlist.splice(idx, 1);
+        if (state.next > idx) state.next--;
+        if (state.next >= state.setlist.length) state.next = 0;
+        loaded.delete(s.id); await files.del(s.id); save(); renderSetlist(); toast(`Removed ${s.title}`);
+      });
+      const nb = li.querySelector('[data-act="next"]');
+      if (nb) nb.addEventListener('click', () => { state.next = idx; save(); renderSetlist(); toast(`${s.title} plays next`); });
+      ol.appendChild(li);
+    });
+  }
+  $('#add-files').addEventListener('change', async (e) => {
+    const list = [...e.target.files];
+    for (const [i, f] of list.entries()) {
+      const base = f.name.replace(/\.[^.]+$/, '').replace(/_/g, ' ');
+      const parts = base.split(/\s+-\s+/);
+      const item = { id: 'u' + Date.now().toString(36) + i, title: parts.length > 1 ? parts.slice(1).join(' - ') : base, band: parts.length > 1 ? parts[0] : 'Your file' };
+      await files.put(item.id, { blob: f, name: f.name });
+      loaded.add(item.id); state.setlist.push(item);
+    }
+    e.target.value = ''; save(); renderSetlist();
+    if (list.length) toast(`Added ${list.length} song${list.length > 1 ? 's' : ''}`);
+  });
+  $('#reset-list').addEventListener('click', () => {
+    const ids = new Set(state.setlist.map((s) => s.id));
+    for (const d of DEFAULT_SETLIST) if (!ids.has(d.id)) state.setlist.push({ ...d });
+    save(); renderSetlist(); toast('Default songs are back on the list');
+  });
+
+  /* ---------- wallpaper ---------- */
+  const wallImg = $('#wall-img');
+  function showWall(blob) {
+    if (wallImg.src) URL.revokeObjectURL(wallImg.src);
+    if (blob) { wallImg.src = URL.createObjectURL(blob); wallImg.hidden = false; } else { wallImg.removeAttribute('src'); wallImg.hidden = true; }
+  }
+  $('#wall-file').addEventListener('change', async (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    await files.put('wallpaper', { blob: f }); showWall(f); e.target.value = '';
+  });
+  $('#wall-clear').addEventListener('click', async () => { await files.del('wallpaper'); showWall(null); });
+
+  /* ---------- audio ---------- */
+  const audio = $('#player');
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch {}
+  let actx = null;
+  function ensureCtx() {
+    if (!actx) { const C = window.AudioContext || window.webkitAudioContext; if (C) try { actx = new C(); } catch {} }
+    if (actx && actx.state !== 'running') actx.resume().catch(() => {});
+    return actx;
+  }
+  const silentURL = (() => {
+    const n = 800, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+    const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+    w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true);
+    v.setUint16(22, 1, true); v.setUint32(24, 8000, true); v.setUint32(28, 16000, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+    w(36, 'data'); v.setUint32(40, n * 2, true);
+    return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+  })();
+  let unlocked = false;
+  document.addEventListener('pointerdown', () => {
+    ensureCtx();
+    if (unlocked || ringing) return;
+    unlocked = true;
+    audio.src = silentURL;
+    audio.play().then(() => { if (audio.src === silentURL) audio.pause(); }).catch(() => { unlocked = false; });
+  }, { capture: true });
+
+  let riff = null;
+  function startRiff() {
+    const c = ensureCtx(); if (!c) return;
+    stopRiff();
+    const out = c.createGain(); out.gain.setValueAtTime(.25, c.currentTime); out.gain.linearRampToValueAtTime(.9, c.currentTime + 10); out.connect(c.destination);
+    const drive = c.createWaveShaper();
+    const curve = new Float32Array(1024);
+    for (let i = 0; i < 1024; i++) { const x = i / 512 - 1; curve[i] = Math.tanh(x * 9); }
+    drive.curve = curve; drive.oversample = '4x';
+    const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 75;
+    const cab = c.createBiquadFilter(); cab.type = 'lowpass'; cab.frequency.value = 3600;
+    const amp = c.createGain(); amp.gain.value = .32;
+    drive.connect(hp); hp.connect(cab); cab.connect(amp); amp.connect(out);
+    const noise = c.createBuffer(1, c.sampleRate * .3, c.sampleRate);
+    const nd = noise.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+    const NOTE = { E: 82.41, F: 87.31, G: 98.0, B: 116.54 };
+    const pat = 'ee-ee-ef' + 'ee-ee-B-' + 'ee-ee-ef' + 'G-F-E-B-';
+    const step = 60 / 184 / 4;
+    const pluck = (t, f, open) => {
+      const dur = open ? step * 1.9 : step * .85;
+      const g = c.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(1, t + .004); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+      const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = open ? 2600 : 800;
+      [1, 1.5, 2].forEach((r, i) => { const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f * r; o.detune.value = (i - 1) * 6; o.connect(lp); o.start(t); o.stop(t + dur + .05); });
+      lp.connect(g); g.connect(drive);
+    };
+    const kick = (t) => {
+      const o = c.createOscillator(), g = c.createGain();
+      o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(42, t + .12);
+      g.gain.setValueAtTime(.9, t); g.gain.exponentialRampToValueAtTime(.001, t + .16);
+      o.connect(g); g.connect(out); o.start(t); o.stop(t + .2);
+    };
+    const snare = (t) => {
+      const s = c.createBufferSource(); s.buffer = noise;
+      const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1800; f.Q.value = .7;
+      const g = c.createGain(); g.gain.setValueAtTime(.7, t); g.gain.exponentialRampToValueAtTime(.001, t + .18);
+      s.connect(f); f.connect(g); g.connect(out); s.start(t); s.stop(t + .25);
+    };
+    const bell = (t) => {
+      [[.5, .5], [1, .45], [1.19, .3], [1.5, .22], [2, .28], [2.52, .14], [3.01, .1]].forEach(([r, a]) => {
+        const o = c.createOscillator(), g = c.createGain(); o.type = 'sine'; o.frequency.value = 220 * r;
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(a * .55, t + .01); g.gain.exponentialRampToValueAtTime(.001, t + 4.5);
+        o.connect(g); g.connect(out); o.start(t); o.stop(t + 4.6);
+      });
+    };
+    let nextT = c.currentTime + .08, i = 0;
+    const timer = setInterval(() => {
+      while (nextT < c.currentTime + .25) {
+        const ch = pat[i % 32];
+        if (ch !== '-') pluck(nextT, NOTE[ch.toUpperCase()], ch === ch.toUpperCase());
+        if (i % 2 === 0) kick(nextT);
+        if (i % 8 === 4) snare(nextT);
+        if (i % 64 === 0) bell(nextT);
+        nextT += step; i++;
+      }
+    }, 25);
+    riff = { timer, out, c };
+  }
+  function stopRiff() {
+    if (!riff) return;
+    clearInterval(riff.timer);
+    const { out, c } = riff;
+    try { out.gain.cancelScheduledValues(c.currentTime); out.gain.setValueAtTime(out.gain.value, c.currentTime); out.gain.linearRampToValueAtTime(0, c.currentTime + .08); } catch {}
+    setTimeout(() => { try { out.disconnect(); } catch {} }, 200);
+    riff = null;
+  }
+
+  /* ---------- ringing ---------- */
+  let ringing = false, vibTimer = null, rampTimer = null, songURL = null;
+  async function pickTrack() {
+    const L = state.setlist;
+    for (let i = 0; i < L.length; i++) {
+      const idx = (state.next + i) % L.length, s = L[idx];
+      if (!loaded.has(s.id)) continue;
+      const rec = await files.get(s.id);
+      if (rec && rec.blob) { state.next = (idx + 1) % L.length; save(); renderSetlist(); return { ...s, blob: rec.blob }; }
+      loaded.delete(s.id);
+    }
+    return null;
+  }
+  function stopSound() {
+    clearInterval(rampTimer);
+    audio.pause();
+    if (songURL) { URL.revokeObjectURL(songURL); songURL = null; }
+    stopRiff();
+  }
+  function showSong(title, band) { $('#ring-song-title').textContent = title; $('#ring-song-band').textContent = band; }
+  async function playNext() {
+    stopSound();
+    const t = await pickTrack();
+    if (!ringing) return;
+    if (t) {
+      showSong(t.title, t.band);
+      songURL = URL.createObjectURL(t.blob);
+      audio.src = songURL; audio.loop = false; audio.volume = .4;
+      try {
+        await audio.play();
+        rampTimer = setInterval(() => { audio.volume = Math.min(1, audio.volume + .05); if (audio.volume >= 1) clearInterval(rampTimer); }, 1200);
+        return;
+      } catch {}
+    }
+    showSong('The Bell Tolls', t ? 'Your song was blocked, so here is the riff' : 'Built-in riff · load songs in the setlist');
+    startRiff();
+  }
+  audio.addEventListener('ended', () => { if (ringing && audio.src === songURL) playNext(); });
+  audio.addEventListener('error', () => { if (ringing && songURL && audio.src === songURL) { showSong('The Bell Tolls', 'That file would not play, so here is the riff'); stopSound(); startRiff(); } });
+
+  async function fire() {
+    if (ringing) return;
+    ringing = true;
+    const n = new Date();
+    $('#ring-time').textContent = `${fmt12(n)} ${ampm(n)}`;
+    $('#ring').hidden = false; $('#snooze').focus({ preventScroll: true });
+    if (navigator.vibrate) { navigator.vibrate([600, 300, 600]); vibTimer = setInterval(() => navigator.vibrate([600, 300, 600]), 2000); }
+    requestWakeLock();
+    await playNext();
+  }
+  function endRing() {
+    ringing = false;
+    stopSound(); clearInterval(vibTimer); if (navigator.vibrate) navigator.vibrate(0);
+    $('#ring').hidden = true; resetKill();
+    updateReadout();
+  }
+  $('#snooze').addEventListener('click', () => { state.snoozeUntil = Date.now() + 9 * 60000; save(); endRing(); });
+  const killBtn = $('#kill');
+  let holdStart = 0, holdRaf = 0;
+  function resetKill() { cancelAnimationFrame(holdRaf); holdStart = 0; killBtn.style.setProperty('--p', 0); killBtn.textContent = 'Hold to kill it'; }
+  function holdTick() {
+    const p = Math.min(1, (performance.now() - holdStart) / 2000);
+    killBtn.style.setProperty('--p', p);
+    if (p >= 1) { state.snoozeUntil = null; save(); endRing(); return; }
+    holdRaf = requestAnimationFrame(holdTick);
+  }
+  function holdBegin(e) { if (e) e.preventDefault(); if (holdStart) return; holdStart = performance.now(); killBtn.textContent = 'Keep holding…'; holdRaf = requestAnimationFrame(holdTick); }
+  killBtn.addEventListener('pointerdown', (e) => { killBtn.setPointerCapture && killBtn.setPointerCapture(e.pointerId); holdBegin(e); });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((ev) => killBtn.addEventListener(ev, () => { if (ringing) resetKill(); }));
+  killBtn.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && !e.repeat) holdBegin(e); });
+  killBtn.addEventListener('keyup', () => { if (ringing) resetKill(); });
+  killBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  $('#test-btn').addEventListener('click', () => { ensureCtx(); fire(); });
+
+  /* ---------- alarm check ---------- */
+  let lastCheck = Date.now();
+  function checkAlarm() {
+    const now = Date.now();
+    if (!ringing) {
+      if (state.snoozeUntil && now >= state.snoozeUntil) {
+        state.snoozeUntil = null; save();
+        fire();
+      } else if (state.armed && !state.snoozeUntil) {
+        const t = nextAlarm(new Date(lastCheck));
+        if (t && t.getTime() <= now && now - t.getTime() < 15 * 60000) fire();
+      }
+    }
+    lastCheck = now;
+  }
+  setInterval(() => { checkAlarm(); updateReadout(); }, 1000);
+
+  /* ---------- nightstand / wake lock ---------- */
+  let lock = null, night = false;
+  async function requestWakeLock() {
+    try {
+      if ('wakeLock' in navigator && document.visibilityState === 'visible' && !lock) {
+        lock = await navigator.wakeLock.request('screen');
+        lock.addEventListener('release', () => { lock = null; updateLockNote(); });
+      }
+    } catch {}
+    updateLockNote();
+  }
+  function updateLockNote() {
+    const n = $('#lock-note');
+    if (!night) { n.hidden = true; return; }
+    n.hidden = false;
+    n.textContent = lock ? 'Screen will stay awake. Keep the phone plugged in.' : 'This browser may let the screen sleep. Plug in and raise your screen timeout.';
+  }
+  $('#night-btn').addEventListener('click', () => {
+    night = true; document.body.classList.add('night');
+    if (!state.armed) { state.armed = true; save(); renderArm(); }
+    requestWakeLock();
+    try { const r = document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); if (r && r.catch) r.catch(() => {}); } catch {}
+    updateReadout(); scrollTo(0, 0);
+  });
+  $('#night-exit').addEventListener('click', () => {
+    night = false; document.body.classList.remove('night');
+    if (lock) { lock.release().catch(() => {}); lock = null; }
+    try { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); } catch {}
+    updateLockNote();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') { if (night || ringing) requestWakeLock(); checkAlarm(); updateReadout(); }
+  });
+
+  /* ---------- boot ---------- */
+  updateReadout(); renderSetlist();
+  files.keys().then(async (keys) => {
+    for (const k of keys) if (state.setlist.some((s) => s.id === k)) loaded.add(k);
+    renderSetlist();
+    if (keys.includes('wallpaper')) { const w = await files.get('wallpaper'); if (w && w.blob) showWall(w.blob); }
+  });
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    try { navigator.serviceWorker.register('sw.js').catch(() => {}); } catch {}
+  }
+})();
+</script>
+</body><!--shell-->
+</html><!--shell-->
