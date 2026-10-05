@@ -396,7 +396,7 @@ body.night .stage { width: min(100%, 62vh, 560px); }
     <ol id="setlist"></ol>
     <div class="actions" style="justify-content:flex-start">
       <label class="btn small" for="add-files">Add more songs</label>
-      <input type="file" id="add-files" accept="audio/*" multiple class="vh">
+      <input type="file" id="add-files" multiple class="vh">
       <button class="btn small" id="reset-list" type="button">Restore default list</button>
     </div>
     <div class="toast" id="toast" role="status"></div>
@@ -632,6 +632,20 @@ body.night .stage { width: min(100%, 62vh, 560px); }
 
   /* ---------- setlist ---------- */
   const toast = (msg) => { const t = $('#toast'); t.textContent = msg; clearTimeout(toast.t); toast.t = setTimeout(() => t.textContent = '', 4000); };
+  // iPhones gray out downloaded MP3s when the picker filters by type, so any file can be picked
+  // and this checks it actually plays before saving it.
+  function playable(file) {
+    return new Promise((res) => {
+      const a = new Audio(), url = URL.createObjectURL(file);
+      const done = (ok) => { clearTimeout(t); a.removeAttribute('src'); a.load(); URL.revokeObjectURL(url); res(ok); };
+      const t = setTimeout(() => done(/\.(mp3|m4a|aac|wav|aiff?|flac|ogg|opus|caf)$/i.test(file.name)), 8000);
+      a.preload = 'metadata';
+      a.onloadedmetadata = () => done(true);
+      a.onerror = () => done(false);
+      a.src = url;
+    });
+  }
+  const notSong = (f) => `${f.name} won't play on this phone. Try an MP3 or M4A.`;
   function upcomingIdx() {
     const L = state.setlist;
     for (let i = 0; i < L.length; i++) { const idx = (state.next + i) % L.length; if (loaded.has(L[idx].id)) return idx; }
@@ -645,7 +659,7 @@ body.night .stage { width: min(100%, 62vh, 560px); }
       li.className = 'track' + (idx === nx ? ' is-next' : '');
       const has = loaded.has(s.id);
       li.innerHTML = `<span class="num">${idx + 1}</span><div class="meta"><b></b><span></span></div><div class="chips"></div>
-        <div class="ops"><div class="left"><label class="icon-btn btn small">${has ? 'Replace' : 'Load'}<input type="file" accept="audio/*" class="vh"></label>
+        <div class="ops"><div class="left"><label class="icon-btn btn small">${has ? 'Replace' : 'Load'}<input type="file" class="vh"></label>
         ${has ? '<button type="button" class="icon-btn" data-act="next">Play next</button>' : ''}</div>
         <div class="right"><button type="button" class="icon-btn" data-act="del" aria-label="Remove ${s.title.replace(/"/g, '')}">Remove</button></div></div>`;
       li.querySelector('.meta b').textContent = s.title;
@@ -656,7 +670,8 @@ body.night .stage { width: min(100%, 62vh, 560px); }
       c.textContent = idx === nx ? 'Next up' : has ? 'Loaded' : 'No file';
       chips.appendChild(c);
       li.querySelector('input').addEventListener('change', async (e) => {
-        const f = e.target.files[0]; if (!f) return;
+        const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+        if (!(await playable(f))) { toast(notSong(f)); return; }
         await files.put(s.id, { blob: f, name: f.name });
         loaded.add(s.id); renderSetlist(); toast(`Loaded ${s.title}`);
       });
@@ -672,7 +687,8 @@ body.night .stage { width: min(100%, 62vh, 560px); }
     });
   }
   $('#add-files').addEventListener('change', async (e) => {
-    const list = [...e.target.files];
+    const picked = [...e.target.files], list = [];
+    for (const f of picked) if (await playable(f)) list.push(f); else toast(notSong(f));
     for (const [i, f] of list.entries()) {
       const base = f.name.replace(/\.[^.]+$/, '').replace(/_/g, ' ');
       const parts = base.split(/\s+-\s+/);
