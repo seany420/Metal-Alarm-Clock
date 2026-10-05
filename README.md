@@ -63,7 +63,7 @@ Every push to `ios/` builds the app on GitHub's Mac servers (**Actions → iOS a
 
 1. Join the Apple Developer Program at developer.apple.com.
 2. In App Store Connect, create an app with bundle ID `com.seany420.metalalarm` (or your own; see step 4).
-3. App Store Connect → Users and Access → Integrations → **App Store Connect API** → generate a key with **App Manager** access. Download the `.p8` file once.
+3. App Store Connect → Users and Access → Integrations → **App Store Connect API** → generate a key with **Admin** access (needed so GitHub can create the signing certificate for you). Download the `.p8` file once.
 4. In this GitHub repo: **Settings → Secrets and variables → Actions**
    - Variables: `TEAM_ID` (10 characters, from developer.apple.com → Membership), optionally `BUNDLE_ID`
    - Secrets: `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8` (paste the whole `.p8` file)
