@@ -28,13 +28,15 @@ jobs:
       - name: Build
         run: |
           cd ios
-          set -o pipefail
+          set +e
           xcodebuild -project MetalAlarm.xcodeproj -scheme MetalAlarm \
             -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' \
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
-            build | tee build.log | grep -E "error:|warning: .*AlarmKit|BUILD" || true
-          test -d build/Build/Products/Release-iphoneos/MetalAlarm.app
+            build > build.log 2>&1
+          code=$?
+          grep -E "error:|warning:.*(deprecated|AlarmKit)|BUILD (SUCCEEDED|FAILED)" build.log | sort -u
+          exit $code
 
       - name: Package IPA
         run: |

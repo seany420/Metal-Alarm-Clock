@@ -6,7 +6,7 @@ struct ClockFace: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        TimelineView(reduceMotion ? .periodic(from: .now, by: 1) : .animation(minimumInterval: 1.0 / 30)) { tl in
+        TimelineView(.animation(minimumInterval: reduceMotion ? 1 : 1.0 / 30)) { tl in
             let c = Calendar.current.dateComponents([.hour, .minute, .second, .nanosecond], from: tl.date)
             let s = Double(c.second ?? 0) + (reduceMotion ? 0 : Double(c.nanosecond ?? 0) / 1e9)
             let m = Double(c.minute ?? 0) + s / 60
@@ -121,7 +121,7 @@ struct BloodBand: View {
 
     var body: some View {
         let top = Self.topInset
-        TimelineView(reduceMotion ? .periodic(from: .now, by: 60) : .animation(minimumInterval: 1.0 / 30)) { tl in
+        TimelineView(.animation(minimumInterval: reduceMotion ? 60 : 1.0 / 30)) { tl in
             Canvas { ctx, size in
                 let t = tl.date.timeIntervalSinceReferenceDate
                 var band = Path()

@@ -132,7 +132,7 @@ struct RootView: View {
         case [true, false, false, false, false, false, true]: days = "weekends"
         default:
             let names = Calendar.current.shortWeekdaySymbols
-            days = zip(names, s.days).filter(\.1).map(\.0).joined(separator: " ")
+            days = zip(names, s.days).filter { $0.1 }.map { $0.0 }.joined(separator: " ")
         }
         return "\(clockTime(d)) \(amPM(d)), \(days) · \(s.armed ? "armed" : "off")"
     }
