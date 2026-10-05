@@ -14,7 +14,7 @@ const out = path.join(root, 'ios/MetalAlarm/Resources/Art');
   await p.evaluate((fonts) => {
     const st = document.createElement('style');
     st.textContent = `
-      @font-face { font-family: "UnifrakturMaguntia"; src: url("file://${fonts}/UnifrakturMaguntia-Book.ttf"); }
+      @font-face { font-family: "Cinzel"; font-weight: 700; src: url("file://${fonts}/Cinzel.ttf"); }
       html, body { background: transparent !important; margin: 0; padding: 0; }
       .rim-drip { animation: none !important; transform: scaleY(.85); }
       #stage-out svg { display: block; }`;
@@ -24,7 +24,7 @@ const out = path.join(root, 'ios/MetalAlarm/Resources/Art');
     window.__knife = document.querySelector('.prop.knife').cloneNode(true);
     document.body.innerHTML = '<div id="stage-out"></div>';
   }, fonts);
-  await p.evaluate(() => document.fonts.load('30px UnifrakturMaguntia'));
+  await p.evaluate(() => document.fonts.load("700 30px Cinzel"));
 
   const show = (fn) => p.evaluate(fn);
   const shot = async (name, size) => {
